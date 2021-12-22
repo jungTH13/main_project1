@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <!-- 네이버 지도 API-->
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=yrmv6xu634"></script>
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <title>서울 부동산 실거래 현황</title>
+
+    
+</head>
+<body>
+    <!-- 네비게이션 바 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary" style="width:100%;">
+    <div class="container-fluid" style="width:100%;">
+        <a class="navbar-brand" href="/">Mini_project</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+            <a class="nav-link btn-primary btn-outline-link:hover " aria-current="page" href="/reports">현황</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link active" href="/searching">검색</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link btn-primary btn-outline-link:hover " href="/api">예측 API</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link btn-primary btn-outline-link:hover " href="#">모델 분석</a>
+            </li>
+        </ul>
+        </div>
+    </div>
+    </nav>
+    <div style="height:20px;"></div>
+    
+    <!-- 서비스 인터페이스 -->
+    
+    <div class="row g-4">
+        <div style="width:0px;"></div>
+        <div class="col-4" >
+            <!-- 검색 UI -->
+
+            <div class="row g-1">
+                <div class="form-floating" style="width:25%;" >
+                    <select class="form-select" id="법정동" aria-label="Floating label select example">
+                        <option selected>전체</option>
+                    </select>
+                    <label for="법정동">법정동</label>
+                </div>
+            
+                <div class="form-floating" style="width:25%;">
+                    <select class="form-select" id="건물용도" aria-label="Floating label select example">
+                        <option selected>전체</option>
+                        <option value="아파트">아파트</option>
+                        <option value="연립다세대">다세대</option>
+                        <option value="오피스텔">오피스텔</option>
+                    </select>
+                    <label for="건물용도">건물용도</label>
+                </div>
+
+                <div class="form-floating" style="width:25%;">
+                    <input type="text" class="form-control" id="거래가이상" >
+                    <label for="거래가이상" style="text-align:right;">실거래가 이상<br/>만원</label>
+                </div>
+                <div class="form-floating" style="width:25%;text-align:right;">
+                    <input type="text" class="form-control" id="거래가이하" >
+                    <label for="거래가이하" >실거래가 이하<br/>만원</label>
+                </div>
+            </div>
+            <div style="height:3px;"></div>
+            <div class="row g-1">
+                <div class="form-floating" style="width:80%;">
+                    <input type="email" class="form-control" id="건물명" >
+                    <label for="건물명">건물명</label>
+                </div>
+                
+                <!-- 검색을 위한 AJAX 설정-->
+                <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+                <script type="text/javascript">
+                    function min(a,b){
+                        if (a<b)
+                            return a;
+                        else
+                            return b;
+                    }
+                    function max(a,b){
+                        if (a>b)
+                            return a;
+                        else
+                            return b;
+                    }
+                    function search_db(){
+                        var base_url =document.location.href;
+                        var params ={
+                            1 : document.getElementById("법정동").value,
+                            2 : document.getElementById("건물용도").value,
+                            3 : document.getElementById("거래가이상").value,
+                            4 : document.getElementById("거래가이하").value,
+                            5 : document.getElementById("건물명").value
+                        };
+                      $.ajax({
+                          type : "POST",            // HTTP method type(GET, POST) 형식이다.
+                          url :  base_url+"_db",      // 컨트롤러에서 대기중인 URL 주소이다.
+                          data : params,            // Json 형식의 데이터이다.
+                          //contentType: "application/x-www-form-urlencoded; charset=euc-kr",
+                          success : function(res){ // 비동기통신의 성공일경우 success콜백으로 들어옵니다. 'res'는 응답받은 데이터이다.
+                              // 응답코드 > 0000
+                                console.log(res)
+                                //네이버 지도 마커,테이블 정보 업데이트
+                                latlngs=[];
+                                contentString=[];
+                                table_tbody=document.getElementById("table_info");
+                                table_data=[]
+                                x_list=[0,200]
+                                y_list=[0,200]
+                                
+                                for(var i=0;i<res['data'].length;i++){
+                                    //실거래 리스트표 출력을 위한 리스트 갱신
+                                    table_data.push([
+                                        '<tr>',
+                                        '<td width="12%">'+res['data'][i][1]+'/'+res['data'][i][2]+'</td>',
+                                        '<td width="15%">'+res['data'][i][7]+'</td>',
+                                        '<td width="12%">'+res['data'][i][11]+'</td>',
+                                        '<td width="15%">'+res['data'][i][5].toFixed(2)+'㎡</td>',
+                                        '<td width="26%">'+res['data'][i][12]+'</td>',
+                                        '<td width="20%">'+res['deal'][i]+'</td>',
+                                        '</tr>'
+                                    ].join(''));
+                                }
+                                table_tbody.innerHTML=table_data.join('');
+
+                                for(var i=0;i<res['map_data'].length;i++){
+                                    //화면 확대 비율 설정을 위한 마커간 최대 거리 탐색
+                                    if(res['map_data'][i][13]!=0.0){
+                                        x_list[1]=min(x_list[1],res['map_data'][i][0]);
+                                        x_list[0]=max(x_list[0],res['map_data'][i][0]);
+                                        y_list[1]=min(y_list[1],res['map_data'][i][1]);
+                                        y_list[0]=max(y_list[0],res['map_data'][i][1]);
+                                    }
+                                    //좌표 정보 리스트 갱신
+                                    latlngs.push(new naver.maps.LatLng(res['map_data'][i][0],res['map_data'][i][1]));
+                                    //좌표별 info 정보 리스트 갱신
+                                    contentString.push([
+                                        '<div class="iw_inner">',
+                                        '   <p class="fs-6 fw-bold">'+res['map_data'][i][2]+'<br/>'+res['deal'][i]+'<br/>'+res['map_data'][i][3]+'㎡</p>',
+                                        '</div>'
+                                    ].join(''));
+                                }
+                                
+                                //현재 마커 제거
+                                for(var i=0;i<markerList.length;i++){
+                                    markerList[i].setMap(null);
+                                }
+                                infowindow=[];
+                                markerList = [];
+                                create_marker(res['map_data']);
+                                map.setCenter(new naver.maps.LatLng((x_list[0]+x_list[1])/2,(y_list[0]+y_list[1])/2));
+                                var zoom_size=max(x_list[0]-x_list[1],y_list[0]-y_list[1]);
+                                if (17-(zoom_size*100/3.6).toFixed(0)>12){
+                                    map.setZoom(17-(zoom_size*100/3.6).toFixed(0));
+                                }else{
+                                    map.setZoom(12);
+                                }
+                              //alert(res.code);
+                          },
+                          error : function(XMLHttpRequest, textStatus, errorThrown){ // 비동기 통신이 실패할경우 error 콜백으로 들어옵니다.
+                              alert("서버와 연결이 불가능합니다.")
+                          }
+                      });
+                    }
+                </script>
+                <div class="form-floating" style="width:20%;">
+                    <button type="botton" class="btn btn-primary mb-3" id="search_botton" onclick="search_db();" style="height:58px;width:100%;">검색</button>
+                </div>
+            </div>
+            <script>//법정동 선택 리스트 생성 및 적용
+                {% if search_list %}
+                //GINJA 구분자 처리
+                var search_data = '{{search_list}}'.replaceAll("&#39;",'"');
+                search_data=search_data.split('|');
+                console.log(search_data);
+                var search_data_doctype=['<option selected>전체</option>'];
+                var search_selet=document.getElementById("법정동");
+
+                for(var i=0;i<search_data.length;i++){
+                    search_data_doctype.push('<option value="'+search_data[i]+'">'+search_data[i]+'</option>');
+                }
+
+                search_selet.innerHTML=search_data_doctype.join('');
+                {% endif %}
+            </script>
+            
+            
+
+            <!-- 검색 정보 테이블 -->
+            <table class="table" style="text-align: center;">
+                <thead >
+                    <tr>
+                    <th scope="col" width="12%" >계약일</th>
+                    <th scope="col" width="15%">법정동</th>
+                    <th scope="col" width="12%">용도</th>
+                    <th scope="col" width="15%">전용면적</th>
+                    <th scope="col" width="26%">건물명</th>
+                    <th scope="col" width="20%">실거래가</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr></tr>
+                </tbody>
+            </table>
+            <div style="width: 100%%; height: 580px; overflow: auto">
+                <table class="table scrolltbody">
+                    <tbody id='table_info'></tbody>
+                </table>
+            </div>
+            <p>최대 1000건에 대한 정보가 표시됩니다.<br/>(검정:이전거래없음,파랑:하락거래,빨강:상승거래)
+        </div>
+            
+        </script>
+        <!-- 네이버 지도 -->
+        <div class="col-6" id="map" style="width:64%;height:800px;"></div>
+        
+        <script>
+            {%if data_str%}
+            var HOME_PATH = window.HOME_PATH || '.';
+            
+            //GINJA 구분자 처리
+            var data = '{{data_str}}'.replaceAll("&#39;",'"');
+            data=data.split("|");
+            
+            //구분자 처리후 JSON형태로 파싱
+            var data_list = new Array();
+            for (var i=0;i<data.length;i++){
+                var JsonData  = JSON.parse(data[i]);
+                data_list.push(JsonData);
+            }
+            
+            var map = new naver.maps.Map(document.getElementById('map'), {
+                center: new naver.maps.LatLng(37.5453548,126.9832039),
+                zoom: 12,
+                zoomControl: false,
+                mapTypeControl: true,
+                zoomControlOptions: { //줌 컨트롤의 옵션
+                    position: naver.maps.Position.TOP_RIGHT
+                }
+            });
+            
+            //실거래 좌표 리스트 및 거래정보 리스트 생성
+            var latlngs=[];
+            var contentString=[];
+            for(var i=0;i<data_list.length;i++){
+                latlngs.push(new naver.maps.LatLng(data_list[i]["x"],data_list[i]["y"]));
+                contentString.push([
+                                        '<div class="iw_inner">',
+                                        '   <p class="fs-6 fw-bold">'+data_list[i]['건물명']+'<br/>'+data_list[i]['거래금액']+'<br/>'+data_list[i]['전용면적']+'㎡</p>',
+                                        '</div>'
+                                    ].join(''));
+            }
+            
+            var infowindow=[];
+            var markerList = [];
+            function create_marker(deal_data_list=[]){
+                //마커 정보를 maps 객체로 생성 및 리스트화
+                for (var i=0;i<contentString.length;i++){
+                    var inf = new naver.maps.InfoWindow({
+                        content: contentString[i],
+
+                        backgroundColor: "#eee",
+                        borderColor: "#2db400",
+                        borderWidth: 1,
+                        anchorSize: new naver.maps.Size(10, 5),
+                        anchorSkew: true,
+                        anchorColor: "#eee",
+                        pixelOffset: new naver.maps.Point(0, -10)
+                    });
+                    infowindow.push(inf);
+                }
+                
+                //마커 생성 및 이벤트 설정 반복문
+                if(deal_data_list.length==0){
+                    for (var i=0, ii=latlngs.length; i<ii; i++) {
+                        //마커 생성
+                        var marker = new naver.maps.Marker({
+                                position: latlngs[i],
+                                map: map
+                            });
+                        
+                        //마커를 리스트에 저장 및 고유번호 부여{'seq': i}
+                        marker.set('seq', i);
+                        markerList.push(marker);
+
+                        //마커에 이벤트 추가
+                        marker.addListener('mouseover', onMouseOver);
+                        marker.addListener('mouseout', onMouseOut);
+                        marker.addListener('click',info);
+                    
+                        icon = null;
+                        marker = null;
+                    }
+                }else{
+                    for (var i=0, ii=latlngs.length; i<ii; i++) {
+                        //마커 생성
+                        if(deal_data_list[i][5]==0 || deal_data_list[i][4]==deal_data_list[i][5]){
+                            icon_url='static/search_stable.png'
+                        }
+                        else if(deal_data_list[i][4]>deal_data_list[i][5]){
+                            icon_url='static/search_up.png'
+                        }else{
+                            icon_url='static/search_down.png'
+                        }
+                        var marker = new naver.maps.Marker({
+                                position: latlngs[i],
+                                map: map,
+                                icon: {
+                                    url: icon_url
+                                }
+                            });
+                        
+                        //마커를 리스트에 저장 및 고유번호 부여{'seq': i}
+                        marker.set('seq', i);
+                        markerList.push(marker);
+
+                        //마커에 이벤트 추가
+                        marker.addListener('mouseover', onMouseOver);
+                        marker.addListener('mouseout', onMouseOut);
+                        marker.addListener('click',info);
+                    
+                        icon = null;
+                        marker = null;
+                    };
+                };
+            }
+            create_marker()
+            
+            //마우스가 위에 놓일경우 실행할 이벤트 함수
+            function onMouseOver(e) {
+                var marker = e.overlay,
+                    seq = marker.get('seq');
+            
+                
+                if (infowindow[seq].getMap()) {
+                    infowindow[seq].close();
+                } else {
+                    infowindow[seq].open(map, marker);
+                }
+            }
+            
+            //마우스가 위에서 벗어날때 실행할 이벤트 함수
+            function onMouseOut(e) {
+                var marker = e.overlay,
+                    seq = marker.get('seq');
+            
+                
+                if (infowindow[seq].getMap()) {
+                    infowindow[seq].close();
+                } else {
+                    infowindow[seq].open(map, marker);
+                }
+            }
+
+            //해당 마커를 클릭했을 경우 실행할 이벤트 함수
+            function info(e) {
+                var marker=e.overlay,
+                    seq = marker.get('seq');
+
+                if (infowindow[seq].getMap()) {
+                    infowindow[seq].close();
+                } else {
+                    infowindow[seq].open(map, marker);
+                }
+            };
+            //실거래 정보 테이블 갱신
+            var table_tbody=document.getElementById("table_info");
+            table_data=[]
+            for(var i=0;i<data_list.length;i++){
+                table_data.push([
+                    '<tr>',
+                    '<td width="12%" >'+data_list[i]["년"]+'/'+data_list[i]["월"]+'</td>',
+                    '<td width="15%">'+data_list[i]["법정동"]+'</td>',
+                    '<td width="12%">'+data_list[i]["건물용도"]+'</td>',
+                    '<td width="15%">'+data_list[i]["전용면적"].toFixed(2)+'㎡</td>',
+                    '<td width="26%">'+data_list[i]["건물명"]+'</td>',
+                    '<td width="20%">'+data_list[i]["거래금액"]+'</td>',
+                    '</tr>'
+                ].join(''));
+            }
+            table_tbody.innerHTML=table_data.join('');
+            
+            {% else %}
+            var map = new naver.maps.Map(document.getElementById('map'), {
+                center: new naver.maps.LatLng(37.5666805, 126.9784147),
+                zoom: 15,
+                zoomControl: false,
+                mapTypeControl: true,
+                zoomControlOptions: { //줌 컨트롤의 옵션
+                    position: naver.maps.Position.TOP_RIGHT
+                }
+            });
+            {% endif %}
+        </script>
+        
+    </div>
+</body>
+</html>

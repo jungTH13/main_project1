@@ -1,0 +1,335 @@
+<!doctype html>
+<html>
+<head>
+    <!-- 네이버 지도 API-->
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=yrmv6xu634"></script>
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <title>서울 부동산 실거래 현황</title>
+</head>
+<body>
+    <script> //선택상자 옵션 정보
+        SGG_CD_NM={         0: '전체평균', 1: '아파트', 2: '오피스텔', 3: '연립다세대',
+                        11110: '종로구','종로구': 11110,
+                        11140: '중구','중구': 11140,
+                        11170: '용산구','용산구': 11170,
+                        11200: '성동구','성동구': 11200,
+                        11215: '광진구','광진구': 11215,
+                        11230: '동대문구','동대문구': 11230,
+                        11260: '중랑구','중랑구': 11260,
+                        11290: '성북구','성북구': 11290,
+                        11305: '강북구','강북구': 11305,
+                        11320: '도봉구','도봉구': 11320,
+                        11350: '노원구','노원구': 11350,
+                        11380: '은평구','은평구': 11380,
+                        11410: '서대문구','서대문구': 11410,
+                        11440: '마포구','마포구': 11440,
+                        11470: '양천구','양천구': 11470,
+                        11500: '강서구','강서구': 11500,
+                        11530: '구로구','구로구': 11530,
+                        11545: '금천구','금천구': 11545,
+                        11560: '영등포구','영등포구': 11560,
+                        11590: '동작구','동작구': 11590,
+                        11620: '관악구','관악구': 11620,
+                        11650: '서초구','서초구': 11650,
+                        11680: '강남구','강남구': 11680,
+                        11710: '송파구','송파구': 11710,
+                        11740: '강동구','강동구': 11740
+                    };
+        SGG_CD = [11110,11140,11170,11200,11215,11230,11260,11290,11305,11320,11350,11380,11410,11440,11470,11500,11530,11545,11560,11590,11620,11650,11680,11710,11740];
+        SGG_NM = ["종로구","중구","용산구","성동구","광진구","동대문구","중랑구","성북구","강북구","도봉구","노원구","은평구","서대문구","마포구","양천구","강서구","구로구","금천구","영등포구","동작구","관악구","서초구","강남구","송파구","강동구"];
+    </script>
+    <!-- 네비게이션 바 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">Mini_project</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+            <a class="nav-link active " aria-current="page" href="/reports">현황</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link btn-primary btn-outline-link:hover " href="/searching">검색</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link btn-primary btn-outline-link:hover " href="/api">예측 API</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link btn-primary btn-outline-link:hover " href="#">모델 분석</a>
+            </li>
+        </ul>
+        </div>
+    </div>
+    </nav>
+    <div style="height:20px;"></div>
+    <div class="row g-1">
+        <div style="width:0px;"></div>
+        
+        <div class="row g-1">
+            <!-- 검색 UI -->
+            <div class="col-3">
+                <label class="form-label">자치구: </label>
+                <select class="form-select" id="자치구" aria-label="Default select example">
+                    <option selected value="">전체</option>
+                </select>
+            </div>
+            <div class="col-3">
+                <label for="건물용도" class="form-label">건물용도: </label>
+                <select class="form-select" id="건물용도" aria-label="Default select example">
+                    <option selected value="">전체</option>
+                    <option value="아파트">아파트</option>
+                    <option value="연립다세대">연립다세대</option>
+                    <option value="오피스텔">오피스텔</option>
+                </select>
+            </div>
+
+            <div style="width:20px;"></div>
+            <div class="col-2">
+                <label for="실거래시작일" class="form-label">실거래 시작일: </label>
+                <p><input type="date" id="실거래시작일"style="height:38px;width:100%;"></p>
+            </div>
+            <div style="width:30px;height:38px;">
+                <p class="h5"style="width:30px; height:38px; text-align:center;"><br/>~</p>
+            </div>
+            <div class="col-2">
+                <label for="실거래종료일" class="form-label">실거래 종료일: </label>
+                <p><input type="date" id="실거래종료일"style="height:38px;width:100%;"></p>
+            </div>
+
+            <div style="width:20px;"></div>
+            <div class="col-1">
+                <label for="search_botton" class="form-label"></label>
+                <button type="botton" class="btn btn-primary mb-3" id="search_botton" onclick="search_db();" style="height:55px;width:100%;">검색</button>
+            </div>
+
+            <!-- 시각화 UI-->
+            <div class="row">
+                <div class="col-5">
+                    <div id="map" style="width:100%;height:700px;"></div>
+                    <p> 해당 지도에는 최대 3000건에 대한 정보만을 표기 합니다.(동일주소 거래건은 최근거래 한건만 표기)</p>
+                </div>
+                <div class="col-7">
+                    <div>
+                        <canvas class="my-4 w-100" id="myChart1" style="height:330px;width:100%;"></canvas>
+                    </div>
+                    <div>
+                        <canvas class="my-4 w-100" id="myChart2" style="height:330px;width:100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+
+            <!-- 선택상자 인덱스 갱신-->
+            <script>
+                var select_box=document.getElementById("자치구");
+                var select_option=['<option selected value="">전체</option>'];
+                for(var i=0;i<SGG_CD.length;i++){
+                    select_option.push('<option value="'+SGG_CD[i].toString()+'">'+SGG_NM[i]+'</option>');
+                }
+                select_box.innerHTML=select_option.join('');
+            </script>
+
+            <!-- 검색을 위한 AJAX 설정-->
+            <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+            <script type="text/javascript">
+                function search_db(){
+                    var base_url =document.location.href;
+                    var params ={
+                        1 : document.getElementById("자치구").value,
+                        2 : document.getElementById("건물용도").value,
+                        3 : document.getElementById("실거래시작일").value,
+                        4 : document.getElementById("실거래종료일").value
+                    };
+                  $.ajax({
+                      type : "POST",            // HTTP method type(GET, POST) 형식이다.
+                      url : base_url+"_db",      // 컨트롤러에서 대기중인 URL 주소이다.
+                      data : params,            // Json 형식의 데이터이다.
+                      //contentType: "application/x-www-form-urlencoded; charset=euc-kr",
+                      success : function(res){ // 비동기통신의 성공일경우 success콜백으로 들어옵니다. 'res'는 응답받은 데이터이다.
+                          // 응답코드 > 0000
+                            console.log(res)
+                            datas=res['data_set'];
+                            map_datas=res['map_data_set'];
+                            //그래프 1,2 생성 및 적용 코드(최대 4개의 정보셋까지)
+                            for(var itr=0;itr<datas.length;itr++){
+                                res=datas[itr];
+                                
+                                var datasets=[];
+                                var labelsets=[0];//해당 리스트에 들어있는 수만큼 그래프데이터 생성진행
+                                for(var i=0;i<res[1].length;i++)
+                                    labelsets.push(res[1][i]);
+                                var colorsets=['#20c997','#dc3545','#007bff','#6610f2'];
+                                var bordersets=[4,2,2,2];
+                                var pointsets=[3,2,2,2];
+
+                                for(var i=0;i<labelsets.length;i++){
+                                    console.log(res[i+1])
+                                    if(res[i+2]!=''){
+                                        datasets.push({
+                                            label: SGG_CD_NM[labelsets[i]],
+                                            data: res[i+2],
+                                            lineTension: 0,
+                                            backgroundColor: 'transparent',
+                                            borderColor: colorsets[i],
+                                            borderWidth: bordersets[i],
+                                            pointRadius: pointsets[i],
+                                            pointBackgroundColor: colorsets[i]
+                                        })
+                                    }
+                                }
+                                
+                                myChart[itr].data.datasets=datasets;
+                                myChart[itr].data.labels=res[0];
+                                myChart[itr].update();
+                            }
+                            map.setCenter(new naver.maps.LatLng(37.5453548,126.9832039));
+                            map.setZoom(11);
+                            //현재 마커 제거
+                            for(var i=0;i<markerList.length;i++){
+                                markerList[i].setMap(null);
+                            }
+                            create_marker(map_datas);
+
+                      },
+                      error : function(XMLHttpRequest, textStatus, errorThrown){ // 비동기 통신이 실패할경우 error 콜백으로 들어옵니다.
+                          alert("서버와 연결이 불가능합니다.")
+                      }
+                  });
+                }
+            </script>
+
+        </div>
+        <div style="width:0px;"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js" integrity="sha384-uO3SXW5IuS1ZpFPKugNNWqTZRRglnUJK6UAZ/gxOX80nxEkN9NcGZTftn6RzhGWE" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js" integrity="sha384-zNy6FEbO50N+Cg5wap8IKA4M/ZnLJgzc6w2NqACZaK0u0FXfOWRRJOnQtpZun8ha" crossorigin="anonymous"></script>
+    <!-- 그래프 생성 -->
+    <script>
+        // 그래프 생성
+        feather.replace({ 'aria-hidden': 'true' });
+        var myChart=[];
+        var Cart_canvas=["myChart1","myChart2"];
+        var label_fnc=[
+        function(value, index, values) {
+            if(parseInt(value) >= 1000){
+                return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+'만원';
+            } else if(value>0){
+                return value + '만원';
+            }else{
+                return '평당(3.3㎡)가격'
+            }
+        },
+        function(value, index, values) {
+            if(parseInt(value) >= 1000){
+                return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+'건';
+            } else if(value>0){
+                return value + '건';
+            }else{
+                return '실거래건수'
+            }
+        }
+        ];
+        for(var i=0;i<2;i++){
+            
+            var ctx = document.getElementById(Cart_canvas[i]);
+            
+            myChart.push(new Chart(ctx, {
+                type: 'line',
+                data:{
+                    labels: ['0','0','0','0','0','0','0'],
+                    datasets: [{
+                                    data: [0,0, 0,0,0,0,0],
+                                    lineTension: 0,
+                                    backgroundColor: 'transparent',
+                                    borderColor: '#007bff',
+                                    pointBorderWidth: 1,
+                                    pointBackgroundColor: '#007bff'
+                            }]
+                    },
+                options: {
+                scales: {
+                    yAxes: [{
+                    ticks: {
+                        beginAtZero: true,
+                        callback: label_fnc[i]
+                    }
+                    }]
+                },
+                legend: {
+                    display: true
+                },
+                
+                }
+            }))
+        }
+    </script>
+    <!-- 네이버 지도 -->
+    <script>
+        var map = new naver.maps.Map(document.getElementById('map'), {
+            center: new naver.maps.LatLng(37.5666805, 126.9784147),
+            zoom: 15,
+            zoomControl: false,
+            mapTypeControl: true,
+            zoomControlOptions: { //줌 컨트롤의 옵션
+                position: naver.maps.Position.TOP_RIGHT
+            }
+        });
+
+        var markerList = [];
+        //마커 생성 함수
+        function create_marker(data_list){
+            markerList = [];
+            var HOME_PATH = window.HOME_PATH || '';
+            //마커 생성 및 이벤트 설정 반복문
+
+            for (var i=0; i<data_list.length; i++) {
+                //마커 생성
+
+                var icon_url='';
+                    if(data_list[i][3]==0){
+                        icon_url='static/reports_first.png';
+                    }
+                    else if(data_list[i][2]>=(data_list[i][3]*1.05)){
+                        icon_url='static/reports_up.png';
+                    }
+                    else if(data_list[i][2]<=(data_list[i][3]*0.95)){
+                        icon_url='static/reports_down.png';
+                    }
+                    else{
+                        icon_url='static/reports_stable.png';
+                    }
+
+                var markerOptions = {
+                    position: new naver.maps.LatLng(data_list[i][0],data_list[i][1]),
+                    map: map,
+                    icon: {
+                        url: HOME_PATH +icon_url,
+                        size: new naver.maps.Size(50, 52),
+                        origin: new naver.maps.Point(0, 0),
+                        anchor: new naver.maps.Point(25, 26)
+                    }
+                };
+
+                var marker = new naver.maps.Marker(markerOptions);
+                    markerList.push(marker);
+
+                
+            }
+        }
+    </script>
+</body>
+
+
+</html>

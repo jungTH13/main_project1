@@ -1,0 +1,350 @@
+<!doctype html>
+<html>
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <title>서울 부동산 실거래 현황</title>
+</head>
+<body>
+    <!-- 네비게이션 바 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Mini_project</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                <a class="nav-link btn-primary btn-outline-link:hover " aria-current="page" href="/reports">현황</a>
+                </li>
+                <li class="nav-item">
+                <a class="nav-link btn-primary btn-outline-link:hover " href="/searching">검색</a>
+                </li>
+                <li class="nav-item">
+                <a class="nav-link active " href="api">예측 API</a>
+                </li>
+                <li class="nav-item">
+                <a class="nav-link btn-primary btn-outline-link:hover " href="#">모델 분석</a>
+                </li>
+            </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="row g-4" style="padding: 15px;">
+        <h3>부동산 실거래가 예측 서비스</h3>
+        <div class="row g-1">
+            <!-- 검색 UI -->
+            <div class="form-floating" style="width:15%;" >
+                <select onchange="categoryChange('자치구')" class="form-select" id="자치구" aria-label="Floating label select example">
+                    <option selected value="">선택해주세요</option>
+                </select>
+                <label for="자치구">자치구</label>
+            </div>
+            <div class="form-floating" style="width:15%;" >
+                <select onchange="categoryChange('법정동')" class="form-select" id="법정동" aria-label="Floating label select example">
+                    <option selected value="">선택해주세요</option>
+                </select>
+                <label for="법정동">법정동</label>
+            </div>
+            <div class="form-floating" style="width:15%;" >
+                <select onchange="categoryChange('건물용도')" class="form-select" id="건물용도" aria-label="Floating label select example">
+                    <option selected value="">선택해주세요</option>
+                    <option value="아파트">아파트</option>
+                    <option value="연립다세대">연립다세대</option>
+                    <option value="오피스텔">오피스텔</option>
+                </select>
+                <label for="건물용도">건물용도</label>
+            </div>
+            <div onchange="categoryChange('건물명')" class="form-floating" style="width:20%;" >
+                <select class="form-select" id="건물명" aria-label="Floating label select example">
+                    <option selected value="">선택해주세요</option>
+                </select>
+                <label for="건물명">건물명</label>
+            </div>
+            <div class="form-floating" style="width:15%;" >
+                <select class="form-select" id="예측개월수" aria-label="Floating label select example">
+                    <option selected value="">선택해주세요</option>
+                    <option value="1">1개월 후</option>
+                    <option value="2">2개월 후</option>
+                    <option value="3">3개월 후</option>
+                    <option value="4">4개월 후</option>
+                    <option value="5">5개월 후</option>
+                    <option value="6">6개월 후</option>
+                    <option value="7">7개월 후</option>
+                    <option value="8">8개월 후</option>
+                    <option value="9">9개월 후</option>
+                    <option value="10">10개월 후</option>
+                    <option value="11">11개월 후</option>
+                    <option value="12">12개월 후</option>
+                    <option value="13">13개월 후</option>
+                    <option value="14">14개월 후</option>
+                    <option value="15">15개월 후</option>
+                </select>
+                <label for="거래개월수">n개월 후 거래가</label>
+            </div>
+            <button type="botton" class="btn btn-primary mb-3" id="search_botton" onclick="pred_db();" style="height:58px;width:10%;">검색</button>
+        </div>
+
+        <!-- 정보 출력 테이블 -->
+        <div class="col-9">
+            <table class="table" style="text-align: center;">
+                <thead >
+                    <tr>
+                    <th scope="col" width="10%" >계약일</th>
+                    <th scope="col" width="10%">법정동</th>
+                    <th scope="col" width="5%">용도</th>
+                    <th scope="col" width="10%">전용면적</th>
+                    <th scope="col" width="12%">건물명</th>
+                    <th scope="col" width="3%">층</th>
+                    <th scope="col" width="10%">실거래가</th>
+                    <th scope="col" width="10%">예측가(XG)</th>
+                    <th scope="col" width="10%">예측가(ANN)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr></tr>
+                </tbody>
+            </table>
+            <div style="width: 100%%; height: 600px; overflow: auto">
+                <table class="table scrolltbody">
+                    <tbody id='table_info'></tbody>
+                </table>
+            </div>
+            <p>실거래 정보가 저장되어있는 매물에 한해 예측이 가능합니다.</p>
+        </div>
+        <div class="col-3">
+            <div style="height:350px">
+                <h4>XGBoost Model</h4>
+                <p>(val_mae: 4035 / 평균 오차율:6.32%)</p>
+                <img class="col-4" src="static/XG_error.png" alt="" width="150" height="200">
+                <img class="col-4" src="static/XG_error_per.png" alt="" width="150" height="200">
+                <p>test_data: 10000건</p>
+            </div>
+            <div  style="height:350px">
+                <h4 >ANN Model </h4>
+                <p>(val_mae: 3909 / 평균 오차율:6.19%)</p>
+                <img class="col-4" src="static/ANN_error.png" alt="" width="150" height="200">
+                <img class="col-4" src="static/ANN_error_per.png" alt="" width="150" height="200">
+                <p>test_data: 10000건</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        PRED_COUNT=0;
+        SGG_LIST=[  ['강남구', 11680],
+                    ['강동구', 11740],
+                    ['강북구', 11305],
+                    ['강서구', 11500],
+                    ['관악구', 11620],
+                    ['광진구', 11215],
+                    ['구로구', 11530],
+                    ['금천구', 11545],
+                    ['노원구', 11350],
+                    ['도봉구', 11320],
+                    ['동대문구', 11230],
+                    ['동작구', 11590],
+                    ['마포구', 11440],
+                    ['서대문구', 11410],
+                    ['서초구', 11650],
+                    ['성동구', 11200],
+                    ['성북구', 11290],
+                    ['송파구', 11710],
+                    ['양천구', 11470],
+                    ['영등포구', 11560],
+                    ['용산구', 11170],
+                    ['은평구', 11380],
+                    ['종로구', 11110],
+                    ['중구', 11140],
+                    ['중랑구', 11260]];
+
+        //자치구 select_box 갱신
+        var select_box=document.getElementById("자치구");
+        var select_option=['<option selected value="">선택해주세요</option>'];
+        for(var i=0;i<SGG_LIST.length;i++){
+            select_option.push('<option value="'+SGG_LIST[i][1].toString()+'">'+SGG_LIST[i][0]+'</option>');
+        }
+        select_box.innerHTML=select_option.join('');
+    </script>
+
+    <!-- 검색 UI 선택에 따른 select_box 내용 갱신 AJAX-->
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script type="text/javascript">
+        function categoryChange(select_box_info){
+            console.log(select_box_info)
+            if (select_box_info=='자치구'){
+
+                var base_url =document.location.href;
+
+                $.ajax({
+                    type : "POST",            // HTTP method type(GET, POST) 형식이다.
+                    url : base_url+"_SGG",      // 컨트롤러에서 대기중인 URL 주소이다.
+                    data : {1 : document.getElementById("자치구",).value,
+                            'info' : "법정동"},            // Json 형식의 데이터이다.
+                    //contentType: "application/x-www-form-urlencoded; charset=euc-kr",
+                    success : function(res){ // 비동기통신의 성공일경우 success콜백으로 들어옵니다. 'res'는 응답받은 데이터이다.
+                        // 응답코드 > 0000
+                        SET_LIST=res['법정동']
+                        var select_box=document.getElementById("법정동");
+                        var select_option=['<option selected value="">선택해주세요</option>'];
+                        for(var i=0;i<SET_LIST.length;i++){
+                            select_option.push('<option value="'+SET_LIST[i][0].toString()+'">'+SET_LIST[i][0]+'</option>');
+                        }
+                        select_box.innerHTML=select_option.join('');
+                    },
+                    error : function(XMLHttpRequest, textStatus, errorThrown){ // 비동기 통신이 실패할경우 error 콜백으로 들어옵니다.
+                        alert("서버와 연결이 불가능합니다.")
+                    }
+                });
+            }
+            else if (select_box_info=='법정동' || select_box_info=='건물용도'){
+                if(document.getElementById("법정동").value != '' && document.getElementById("건물용도").value != ''){
+                    
+                    var base_url =document.location.href;
+
+                    $.ajax({
+                        type : "POST",            // HTTP method type(GET, POST) 형식이다.
+                        url : base_url+"_SGG",      // 컨트롤러에서 대기중인 URL 주소이다.
+                        data : {
+                                1 : document.getElementById("자치구").value,
+                                2 : document.getElementById("법정동").value,
+                                3 : document.getElementById("건물용도").value,
+                                'info' : "건물명"},            // Json 형식의 데이터이다.
+                        //contentType: "application/x-www-form-urlencoded; charset=euc-kr",
+                        success : function(res){ // 비동기통신의 성공일경우 success콜백으로 들어옵니다. 'res'는 응답받은 데이터이다.
+                            // 응답코드 > 0000
+                            SET_LIST=res['건물명']
+                            var select_box=document.getElementById("건물명");
+                            var select_option=['<option selected value="">선택해주세요</option>'];
+                            for(var i=0;i<SET_LIST.length;i++){
+                                select_option.push('<option value="'+SET_LIST[i][0].toString()+'">'+SET_LIST[i][0]+'</option>');
+                            }
+                            select_box.innerHTML=select_option.join('');
+                        },
+                        error : function(XMLHttpRequest, textStatus, errorThrown){ // 비동기 통신이 실패할경우 error 콜백으로 들어옵니다.
+                            alert("서버와 연결이 불가능합니다.")
+                        }
+                    });
+                }
+            }
+            else if(document.getElementById("건물명").value != ''){
+                var base_url =document.location.href;
+
+                $.ajax({
+                    type : "POST",            // HTTP method type(GET, POST) 형식이다.
+                    url : base_url+"_SGG",      // 컨트롤러에서 대기중인 URL 주소이다.
+                    data : {
+                            1 : document.getElementById("자치구").value,
+                            2 : document.getElementById("법정동").value,
+                            3 : document.getElementById("건물용도").value,
+                            4 : document.getElementById("건물명").value,
+                            'info' : "검색"},            // Json 형식의 데이터이다.
+                    //contentType: "application/x-www-form-urlencoded; charset=euc-kr",
+                    success : function(res){ // 비동기통신의 성공일경우 success콜백으로 들어옵니다. 'res'는 응답받은 데이터이다.
+                        // 응답코드 > 0000
+                        console.log(res);
+                        table_tbody=document.getElementById("table_info");
+                        table_data=[]
+                        PRED_COUNT=res['검색'].length;
+                        for(var i=0;i<res['검색'].length;i++){
+                            //실거래 리스트표 출력을 위한 리스트 갱신
+                            deal=""
+                            if (res['검색'][i][1]<10000){
+                                deal=res['검색'][i][1].toString()+'만원'
+                            }else{
+                                deal=(parseInt(res['검색'][i][1]/10000)).toString()+'억';
+                                if(res['검색'][i][1]%10000>0)
+                                    deal=deal+(res['검색'][i][1]%10000).toString()+'만원';
+                            }
+                            table_data.push([
+                                '<tr>',
+                                '<td width="10%" style="text-align: center;">'+res['검색'][i][2]+'.'+res['검색'][i][3]+'.'+res['검색'][i][4]+'</td>',
+                                '<td width="10%" style="text-align: center;">'+res['검색'][i][8]+'</td>',
+                                '<td width="5%" style="text-align: center;">'+res['검색'][i][12]+'</td>',
+                                '<td width="10%" style="text-align: center;">'+res['검색'][i][6].toFixed(2)+'㎡</td>',
+                                '<td width="12%">'+res['검색'][i][13]+'</td>',
+                                '<td width="3%" style="text-align: center;">'+res['검색'][i][10]+'</td>',
+                                '<td width="10%" style="text-align: center;">'+deal+'</td>',
+                                '<td width="10%" id="pred1_'+i+'" style="text-align: center;">'+"예측전"+'</td>',
+                                '<td width="10%" id="pred2_'+i+'" style="text-align: center;">'+"예측전"+'</td>',
+                                '</tr>'
+                            ].join(''));
+                        }
+                        table_tbody.innerHTML=table_data.join('');
+                    },
+                    error : function(XMLHttpRequest, textStatus, errorThrown){ // 비동기 통신이 실패할경우 error 콜백으로 들어옵니다.
+                        alert("서버와 연결이 불가능합니다.")
+                    }
+                });
+            }
+            
+        }
+    </script>
+    <!-- 검색된 실거래건의 예측 AJAX-->
+    <script type="text/javascript">
+        function pred_db(){
+            var base_url =document.location.href;
+            sv=[document.getElementById("자치구").value,document.getElementById("법정동").value,document.getElementById("건물용도").value,document.getElementById("건물명").value,document.getElementById("예측개월수").value];
+            console.log(sv);
+            if(sv[0]!="" && sv[1]!="" && sv[2]!="" && sv[3]!="" && sv[4]!=""){
+                $.ajax({
+                    type : "POST",            // HTTP method type(GET, POST) 형식이다.
+                    url : base_url+"_SGG",      // 컨트롤러에서 대기중인 URL 주소이다.
+                    data : {
+                            1 : document.getElementById("자치구").value,
+                            2 : document.getElementById("법정동").value,
+                            3 : document.getElementById("건물용도").value,
+                            4 : document.getElementById("건물명").value,
+                            5 : document.getElementById("예측개월수").value,
+                            'info' : "예측"},            // Json 형식의 데이터이다.
+                    //contentType: "application/x-www-form-urlencoded; charset=euc-kr",
+                    success : function(res){ // 비동기통신의 성공일경우 success콜백으로 들어옵니다. 'res'는 응답받은 데이터이다.
+                        // 응답코드 > 0000
+                        console.log(res);
+                        //예측가(XG)정보 업데이트
+                        for(var i=0;i<res['XG'].length;i++){
+                            deal=""
+                            if (res['XG'][i]<10000){
+                                deal=res['XG'][i].toString()+'만원'
+                            }else{
+                                deal=(parseInt(res['XG'][i]/10000)).toString()+'억';
+                                if(res['XG'][i]%10000>0)
+                                    deal=deal+(res['XG'][i]%10000).toString()+'만원';
+                            }
+
+                            XG_table=document.getElementById("pred1_"+i);
+                            XG_table.innerHTML=deal;
+                        }
+                        //예측가(ANN)정보 업데이트
+                        
+                        for(var i=0;i<res['ANN'].length;i++){
+                            deal=""
+                            if (res['ANN'][i]<10000){
+                                deal=res['ANN'][i].toString()+'만원'
+                            }else{
+                                deal=(parseInt(res['ANN'][i]/10000)).toString()+'억';
+                                if(res['ANN'][i]%10000>0)
+                                    deal=deal+(res['ANN'][i]%10000).toString()+'만원';
+                            }
+
+                            XG_table=document.getElementById("pred2_"+i);
+                            XG_table.innerHTML=deal;
+                        }
+                        
+                    },
+                    error : function(XMLHttpRequest, textStatus, errorThrown){ // 비동기 통신이 실패할경우 error 콜백으로 들어옵니다.
+                        alert("서버와 연결이 불가능합니다.")
+                    }
+                });
+            }else{
+                alert("선택을 완료해주세요")
+            }
+        }
+    </script>
+</body>
+</html>
